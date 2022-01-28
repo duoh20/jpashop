@@ -8,6 +8,9 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.entity.Member;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,7 +21,8 @@ import static org.junit.jupiter.api.Assertions.*;
 //등록 쿼리를 보고 싶다면 @Rollback을 false로 주자.
 class MemberJpaRepositoryTest {
 
-    @Autowired MemberJpaRepository memberJpaRepository;
+    @Autowired
+    MemberJpaRepository memberJpaRepository;
 
     @Test //Test import시 주의!! org.junit.jupiter.api.Test;임 (jupiter == jUnit5)
     public void testMember() {
@@ -30,5 +34,37 @@ class MemberJpaRepositoryTest {
         assertThat(findMember.getId()).isEqualTo(member.getId());
         assertThat(findMember.getName()).isEqualTo(member.getName());
         assertThat(findMember).isEqualTo(member); //JPA는 같은 @Transaction 안에서 같은 인스턴스임이 보장된다.
+    }
+
+    @Test
+    public void basicCRUD() {
+        Member memberA = new Member("memberA");
+        Member memberB = new Member("memberB");
+        memberJpaRepository.save(memberA);
+        memberJpaRepository.save(memberB);
+
+        //단건 조회 검증
+        Member findMemberA = memberJpaRepository.findById(memberA.getId()).get();
+        Member findMemberB = memberJpaRepository.findById(memberB.getId()).get();
+        assertThat(findMemberA).isEqualTo(memberA);
+        assertThat(findMemberB).isEqualTo(memberB);
+
+        //더티체킹 확인
+        findMemberA.setName("memberName");
+        assertThat(findMemberA.getName()).isEqualTo("memberName");
+
+        //리스트 조회 검증
+        List<Member> all = memberJpaRepository.findAll();
+        assertThat(all.size()).isEqualTo(2);
+
+        //카운트 검증
+        long count = memberJpaRepository.count();
+        assertThat(count).isEqualTo(2);
+
+        //삭제 검증
+        memberJpaRepository.delete(memberA);
+        memberJpaRepository.delete(memberB);
+        long deletedCount = memberJpaRepository.count();
+        assertThat(deletedCount).isEqualTo(0);
     }
 }
