@@ -27,7 +27,7 @@ public class MemberRepositoryTest {
         Member findMember = byId.get(); //원래 orElse()등을 사용해서 null처리를 해야한다.
 
         assertThat(findMember.getId()).isEqualTo(member.getId());
-        assertThat(findMember.getUserName()).isEqualTo(member.getUserName());
+        assertThat(findMember.getName()).isEqualTo(member.getName());
         assertThat(findMember).isEqualTo(member);
 
     }
