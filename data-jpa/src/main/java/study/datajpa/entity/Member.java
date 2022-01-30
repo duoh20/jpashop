@@ -38,6 +38,11 @@ public class Member {
         }
     }
 
+    public Member(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
     //연관 관계를 설정하는 메서드를 만들어 주어야한다.
     public void changeTeam(Team team) {
         this.team = team;
