@@ -9,6 +9,10 @@ import javax.persistence.*;
 @Getter @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString(of = {"id", "name", "age"}) //연관 관계는 toString을 결면 무한 루프에 빠질 수 있으므로 연관관계 필드는 가급적 toString하지 말자.
+@NamedQuery( //엔티티에 NamedQuery 등록
+        name = "Member.findByName", //작성한 이름은 관습적으로 사용하는 이름, 어떤 이름을 써도 상관 없다.
+        query = "select m from Member m where m.name = :name"
+)
 public class Member {
 
     @Id @GeneratedValue
