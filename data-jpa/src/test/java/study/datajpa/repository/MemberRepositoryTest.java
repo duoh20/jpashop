@@ -151,4 +151,20 @@ public class MemberRepositoryTest {
             System.out.println("name = " + m.getName());
         }
     }
+
+    @Test
+    public void returnType() {
+        Member member1 = new Member("AAA", 10);
+        Member member2 = new Member("BBB", 10);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        List<Member> list = memberRepository.findMemberListByName("AAA");
+        Member member = memberRepository.findMemberByName("AAA");
+        Optional<Member> optionalMember = memberRepository.findOptionalMemberByName("AAA");
+
+        System.out.println("collection == " + list.get(0).getName());
+        System.out.println("single == " +member.getName());
+        System.out.println("optional == " + optionalMember.get().getName());
+    }
 }
