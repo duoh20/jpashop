@@ -29,4 +29,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             " from Member m" +
             " join m.team t")
     List<MemberDto> findMemberDto();
+
+    //컬렉션 파라미터 바인딩
+    //in절에 컬렉션 타입의 파라미터를 넣고 싶을 때,
+    @Query("select m from Member m where m.name in :names")
+    List<Member> findByNames(@Param("names") List<String> names);
 }
