@@ -7,13 +7,18 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create #?? ??? ??? ?? ? ??
+      ddl-auto: create #애플리케이션 시작 시 테이블 드랍하고 다시 생성
     properties:
       hibernate:
-        #show_sql: true #jpa ?? ??? ??? ????, ?? ??? ??? ?? ?? ???
-        format_sql: true #sql? ???? ???
+        #dialect: org.hibernate.dialect.Oracle10gDialect # Oracle쿼리를 생성함
+        #show_sql: true #jpa가 생성한 쿼리를 보여줌
+        format_sql: true #sql을 포맷하여 보여줌
 
 logging.level:
   org.hibernate.SQL: debug
-  #org.hibernate.type: trace #?????? ?? ? ? ?? ??
+  #org.hibernate.type: trace #파라미터 바인딩하여 보여줌
 
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: true
