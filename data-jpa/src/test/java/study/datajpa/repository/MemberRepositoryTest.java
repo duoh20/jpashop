@@ -13,6 +13,8 @@ import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
 import study.datajpa.entity.Team;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +27,7 @@ public class MemberRepositoryTest {
 
     @Autowired MemberRepository memberRepository;
     @Autowired TeamRepository teamRepository;
+    @PersistenceContext EntityManager em;
 
     @Test
     public void testMember() {
@@ -237,5 +240,30 @@ public class MemberRepositoryTest {
         assertThat(page.isFirst()).isTrue(); //isFirst() 첫번째 페이지인지 확인
         assertThat(page.getNumberOfElements()).isEqualTo(3); //getNumberOfElements() 현재 페이지에 나올 데이터 수
         assertThat(page.hasNext()).isTrue(); //hasNext() 다음 페이지가 있는지 확안
+    }
+
+    @Test
+    public void bulkUpdate() {
+        //given
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 19));
+        memberRepository.save(new Member("member3", 20));
+        memberRepository.save(new Member("member4", 21));
+        memberRepository.save(new Member("member5", 35));
+
+        //when
+        int resultCount = memberRepository.bulkAgePlus(20);
+        em.flush(); //같은 트랜잭션이면 같은 EntityManager를 사용한다.
+        em.clear();
+
+        System.out.println(memberRepository.findByName("member5").get(0));
+        //flush()와 clear()를 실행하지 않으면 member5의 나이가 36이 아니라 35로 저장되는 문제가 발생한다.
+        //이는 영속성 컨텍스트에서 commit 시점에 한 번에 쿼리를 날리기 때문이다.
+        //벌크 수정 쿼리는 바로 업데이트 되기 때문에 영속성 컨텍스트를 비워야한다.
+        //혹은 벌크 수정 쿼리를 작성한 JPA 레포지토리 인터페이스에 @Modifying(clearAutomatically = true)을 걸어주자.
+
+
+        //then
+        assertThat(resultCount).isEqualTo(3);
     }
 }
