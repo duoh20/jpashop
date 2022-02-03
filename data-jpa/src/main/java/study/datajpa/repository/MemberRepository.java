@@ -4,12 +4,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
+import study.datajpa.entity.Team;
 
 import java.util.List;
 import java.util.Optional;
@@ -56,4 +58,23 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Modifying(clearAutomatically = true) //JPA가 수정 쿼리임을 알 수 있게 작성해야함 (executeUpdate()와 같은 역할)
     @Query("update Member m set m.age = m.age + 1 where m.age >= :age")
     int bulkAgePlus(@Param("age") int age);
+
+    //N+1을 해결하기 위한 fetch join
+    @Query("select m from Member m left join fetch m.team")
+    List<Member> findMemberFetchJoin();
+
+    //EntityGraph: fetch join을 JPA 쿼리 메소드처럼 풀고 싶을 때 사용
+    @Override //기본 메소드를 오버라이드해서 재정의할 수 있다.
+    @EntityGraph(attributePaths = {"team"})
+    List<Member> findAll();
+
+    @Query("select m from Member m left join fetch m.team")
+    List<Member> findMemberFetchjoin();
+
+    @EntityGraph(attributePaths = {"team"})
+    List<Member> findMemberEntityGraph(); //회원 조회 시 team 데이터도 함깨 가져옴
+
+    @EntityGraph(attributePaths = {"team"})
+    //@EntityGraph("Member.all") jpa 표준 스펙
+    List<Member> findMemberEntityGraphByName(@Param("name") String name); //회원 조회 시 team 데이터도 함깨 가져옴
 }

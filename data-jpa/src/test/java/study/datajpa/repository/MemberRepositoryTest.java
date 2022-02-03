@@ -266,4 +266,41 @@ public class MemberRepositoryTest {
         //then
         assertThat(resultCount).isEqualTo(3);
     }
+
+    @Test
+    public void findMemberLazy() {
+        //given
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+
+        Member member1 = new Member("member1",10, teamA);
+        Member member2 = new Member("member2", 10, teamB);
+        Member member3 = new Member("member2", 10, teamB);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+        memberRepository.save(member3);
+
+        em.flush();
+        em.clear(); //영속성 컨텍스트의 캐시를 DB에 저장 후 초기화
+
+        //when
+        //N+1  문제가 발생하는 쿼리
+        //
+        List<Member> members = memberRepository.findAll();
+        for(Member member : members) {
+            System.out.println("member = " + member.getName());
+            System.out.println("member.team = " + member.getTeam().getName());
+        }
+
+        //N+1을 해결하기 위한 방법 : Fetch Join
+        // Team을 join하는 쿼리 메소드를 추가한다.
+        // 쿼리가 하나로 생성되는 것을 확인할 수 있다.
+        List<Member> membersFetchJoin = memberRepository.findMemberFetchJoin();
+
+        //fetch 조인을 @Query가 아니라 JPA 쿼리 메소드처럼 사용하고 싶다면
+        //JPA 리포지토리의 메소드에 @EntityGraph 어노테이션을 붙여준다.
+        List<Member> membersEntityGraph = memberRepository.findMemberEntityGraph();
+    }
 }

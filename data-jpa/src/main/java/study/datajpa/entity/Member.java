@@ -13,6 +13,7 @@ import javax.persistence.*;
         name = "Member.findByName", //작성한 이름은 관습적으로 사용하는 이름, 어떤 이름을 써도 상관 없다.
         query = "select m from Member m where m.name = :name"
 )
+@NamedEntityGraph(name="Member.all", attributeNodes = @NamedAttributeNode("team")) //JPA 표준 스펙
 public class Member {
 
     @Id @GeneratedValue
