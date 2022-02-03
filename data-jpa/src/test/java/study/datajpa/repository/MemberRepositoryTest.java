@@ -287,7 +287,6 @@ public class MemberRepositoryTest {
 
         //when
         //N+1  문제가 발생하는 쿼리
-        //
         List<Member> members = memberRepository.findAll();
         for(Member member : members) {
             System.out.println("member = " + member.getName());
@@ -301,6 +300,39 @@ public class MemberRepositoryTest {
 
         //fetch 조인을 @Query가 아니라 JPA 쿼리 메소드처럼 사용하고 싶다면
         //JPA 리포지토리의 메소드에 @EntityGraph 어노테이션을 붙여준다.
-        List<Member> membersEntityGraph = memberRepository.findMemberEntityGraph();
+        List<Member> membersEntityGraph = memberRepository.findMemberEntityGraphBy();
+    }
+
+    @Test
+    public void queryHint() {
+        //given
+        Member member1 = new Member("member1", 10);
+        memberRepository.save(member1);
+        em.flush();
+        em.clear(); //member1 생성 후 영속성 컨텍스트 캐시 초기화
+
+        //when
+        Member findMember = memberRepository.findById(member1.getId()).get();
+        findMember.setName("member2");
+
+        em.flush();
+        //flush()할 때 변경 감지가 일어나는데, 덕분에 따로 save()하지 않아도 저장된다.
+        //히지만 변경 감지를 위해 원본 데이터를 하나 더 들고 있어야하기 때문에 메모리를 소비하는 단점이 있다.
+        //변경 감지 필요없이 조회만 필요할 경우 더티 체킹이 일어나지 않도록 하이버네이트에서 기능을 제공하지만
+        //JPA에서는 제공하지 않고 힌트를 사용한다.
+    }
+
+    @Test
+    public void lock() {
+        //given
+        Member member1 = new Member("member1", 10);
+        memberRepository.save(member1);
+        em.flush();
+        em.clear(); //member1 생성 후 영속성 컨텍스트 캐시 초기화
+
+        //when
+        //실행해서 jpa 쿼리를 확인해보면 select for update 구문을 확인할 수 있다.
+        //select for update는 mySQL에서 데이터 수정 중에 다른 트랜잭션이 일어나지 않도록 lock을 거는 기능이다.
+        List<Member> findMember = memberRepository.findLockByName("member1");
     }
 }

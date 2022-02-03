@@ -1,18 +1,14 @@
 package study.datajpa.repository;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
 import study.datajpa.entity.Team;
 
+import javax.persistence.LockModeType;
+import javax.persistence.QueryHint;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,9 +68,16 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     List<Member> findMemberFetchjoin();
 
     @EntityGraph(attributePaths = {"team"})
-    List<Member> findMemberEntityGraph(); //회원 조회 시 team 데이터도 함깨 가져옴
+    List<Member> findMemberEntityGraphBy(); //회원 조회 시 team 데이터도 함깨 가져옴
 
     @EntityGraph(attributePaths = {"team"})
     //@EntityGraph("Member.all") jpa 표준 스펙
     List<Member> findMemberEntityGraphByName(@Param("name") String name); //회원 조회 시 team 데이터도 함깨 가져옴
+
+    //JPA가 제공하는 queryHints
+    @QueryHints(value = @QueryHint(name = "org.hibernate.readOnly", value="true"))
+    Member findReadOnlyByName(String name);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<Member> findLockByName(String name);
 }
