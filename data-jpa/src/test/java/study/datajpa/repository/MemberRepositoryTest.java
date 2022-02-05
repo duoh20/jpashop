@@ -335,4 +335,10 @@ public class MemberRepositoryTest {
         //select for update는 mySQL에서 데이터 수정 중에 다른 트랜잭션이 일어나지 않도록 lock을 거는 기능이다.
         List<Member> findMember = memberRepository.findLockByName("member1");
     }
+
+    //사용자 정의 레포지토리
+    @Test
+    public void callCustom() {
+        List<Member> result = memberRepository.findMemberCustom();
+    }
 }
