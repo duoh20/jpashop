@@ -8,6 +8,8 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.entity.Member;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +25,11 @@ class MemberJpaRepositoryTest {
 
     @Autowired
     MemberJpaRepository memberJpaRepository;
+    @Autowired
+    MemberRepository memberRepository;
+    @PersistenceContext
+    EntityManager em;
+
 
     @Test //Test import시 주의!! org.junit.jupiter.api.Test;임 (jupiter == jUnit5)
     public void testMember() {
@@ -133,5 +140,26 @@ class MemberJpaRepositoryTest {
 
         //then
         assertThat(resultCount).isEqualTo(3);
+    }
+
+    @Test
+    public void JpaEventBaseEntity() throws Exception {
+
+        //given
+        Member member = new Member("member1");
+        memberRepository.save(member); //@PrePersist 발생
+
+        Thread.sleep(100);
+        member.setName("member2");
+
+        em.flush(); //@PreUpdate 발생
+        em.clear();
+
+        //when
+        Member foundMember = memberRepository.findById(member.getId()).get();
+
+        //then
+        System.out.println("member.createdDate = " + member.getCreatedDate());
+        System.out.println("member.updatedDate = " + member.getLastUpdatedDate());
     }
 }

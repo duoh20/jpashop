@@ -341,4 +341,11 @@ public class MemberRepositoryTest {
     public void callCustom() {
         List<Member> result = memberRepository.findMemberCustom();
     }
+
+    @Test
+    public void JpaEventBaseEntity(){
+        Member member = new Member("member1");
+        memberRepository.save(member);
+
+    }
 }
