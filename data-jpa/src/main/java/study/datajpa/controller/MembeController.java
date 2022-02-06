@@ -1,13 +1,20 @@
 package study.datajpa.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
 import study.datajpa.repository.MemberRepository;
 
 import javax.annotation.PostConstruct;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,14 +28,26 @@ public class MembeController {
         return member.getName();
     }
 
-    //도메인 클래스 컨버터
+    //Web 확장: 도메인 클래스 컨버터
     @GetMapping("/members2/{id}") //스프링이 맴버로 컨버팅해줌
     public String findMember2(@PathVariable("id") Member member) {
         return member.getName();
     }
 
+    //Web 확장: 페이징
+    @GetMapping("/members")
+    public Page<MemberDto> list(@PageableDefault(size = 5, sort= "name", direction = Sort.Direction.DESC) Pageable pageable) { //웹에서 바로 바인딩 가능
+        PageRequest request = PageRequest.of(1, 2);
+
+        Page<Member> page = memberRepository.findAll(pageable);
+        Page<MemberDto> map = page.map(member -> new MemberDto(member.getId(), member.getName(), null));
+        return map;
+    }
+
     @PostConstruct //테스트를 위해 데이터 생성
     public void init() {
-        memberRepository.save(new Member("userA"));
+        for (int i = 0; i  < 100; i++) {
+            memberRepository.save(new Member("user" + i, i));
+        }
     }
 }
