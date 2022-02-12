@@ -4,10 +4,8 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
@@ -25,9 +23,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 public class MemberRepositoryTest {
 
-    @Autowired MemberRepository memberRepository;
-    @Autowired TeamRepository teamRepository;
-    @PersistenceContext EntityManager em;
+    @Autowired
+    MemberRepository memberRepository;
+    @Autowired
+    TeamRepository teamRepository;
+    @PersistenceContext
+    EntityManager em;
 
     @Test
     public void testMember() {
@@ -84,7 +85,7 @@ public class MemberRepositoryTest {
         memberRepository.save(member1);
         memberRepository.save(member2);
 
-        List<Member> members  = memberRepository.findByNameAndAgeGreaterThan("AAA",  15);
+        List<Member> members = memberRepository.findByNameAndAgeGreaterThan("AAA", 15);
 
         assertThat(members.get(0).getName()).isEqualTo("AAA");
         assertThat(members.get(0).getAge()).isEqualTo(20);
@@ -98,7 +99,7 @@ public class MemberRepositoryTest {
         memberRepository.save(member1);
         memberRepository.save(member2);
 
-        List<Member> members  = memberRepository.findByName("AAA");
+        List<Member> members = memberRepository.findByName("AAA");
 
         Member findMember = members.get(0);
         assertThat(findMember).isEqualTo(member1);
@@ -111,7 +112,7 @@ public class MemberRepositoryTest {
         memberRepository.save(member1);
         memberRepository.save(member2);
 
-        List<Member> members  = memberRepository.findUser("AAA", 10);
+        List<Member> members = memberRepository.findUser("AAA", 10);
 
         assertThat(members.get(0)).isEqualTo(member1);
     }
@@ -200,7 +201,7 @@ public class MemberRepositoryTest {
         //then
         List<Member> content = page.getContent();
         long totalElements = page.getTotalElements();
-        for(Member member : content) {
+        for (Member member : content) {
             System.out.println("memebr = " + member);
         }
         System.out.println(totalElements);
@@ -275,7 +276,7 @@ public class MemberRepositoryTest {
         teamRepository.save(teamA);
         teamRepository.save(teamB);
 
-        Member member1 = new Member("member1",10, teamA);
+        Member member1 = new Member("member1", 10, teamA);
         Member member2 = new Member("member2", 10, teamB);
         Member member3 = new Member("member2", 10, teamB);
         memberRepository.save(member1);
@@ -288,7 +289,7 @@ public class MemberRepositoryTest {
         //when
         //N+1  문제가 발생하는 쿼리
         List<Member> members = memberRepository.findAll();
-        for(Member member : members) {
+        for (Member member : members) {
             System.out.println("member = " + member.getName());
             System.out.println("member.team = " + member.getTeam().getName());
         }
@@ -343,9 +344,78 @@ public class MemberRepositoryTest {
     }
 
     @Test
-    public void JpaEventBaseEntity(){
+    public void JpaEventBaseEntity() {
         Member member = new Member("member1");
         memberRepository.save(member);
+    }
 
+    @Test
+    public void specBasic() {
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1", 10, teamA);
+        Member m2 = new Member("m2", 10, teamA);
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        Specification<Member> spec = MemberSpec.userName("m1").and(MemberSpec.teamName("teamA"));
+        List<Member> result = memberRepository.findAll(spec);
+
+        Assertions.assertThat(result.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void queryByExample() {
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1", 10, teamA);
+        Member m2 = new Member("m2", 10, teamA);
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        //when
+        //1.SpringDataJpa로 맴버 찾기
+        //memberRepository.findByName("m1");
+
+        //2.QueryExample로 맴버 찾기
+        Member member = new Member("m1");
+        Team team = new Team("teamA");
+        member.setTeam(team); //teamA에 속한 맴버를 찾기 위해 연관 관계 셋팅(내부조인 사용)
+
+        ExampleMatcher.matching().withIgnorePaths("age"); //age 프로퍼티 무시
+
+        Example<Member> example = Example.of(member); //엔티티로 검색 조건을 만듦
+        List<Member> members = memberRepository.findAll(example); //파라미터에 Example 객체를 보냄, JpaRepository 인터페이스에서 QueryByExample을 상속받기 때문에 바로 사용 가능하다.
+        assertThat(members.get(0).getName()).isEqualTo("m1");
+    }
+
+    @Test
+    public void projections() {
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1", 10, teamA);
+        Member m2 = new Member("m2", 10, teamA);
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        //when
+        List<UserNameOnly> result = memberRepository.findProjectionsByName("m1");
+
+        for(UserNameOnly u : result) {
+            System.out.println("userNameOnly = " + u);
+            System.out.println("userNameOnly = " + u.getName());
+        }
     }
 }

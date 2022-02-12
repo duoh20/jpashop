@@ -12,7 +12,7 @@ import javax.persistence.QueryHint;
 import java.util.List;
 import java.util.Optional;
 
-public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom {
+public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom, JpaSpecificationExecutor<Member> {
 
     List<Member> findByNameAndAgeGreaterThan(String name, int age);
 
@@ -60,9 +60,9 @@ public interface MemberRepository extends JpaRepository<Member, Long>, MemberRep
     List<Member> findMemberFetchJoin();
 
     //EntityGraph: fetch join을 JPA 쿼리 메소드처럼 풀고 싶을 때 사용
-    @Override //기본 메소드를 오버라이드해서 재정의할 수 있다.
-    @EntityGraph(attributePaths = {"team"})
-    List<Member> findAll();
+//    @Override //기본 메소드를 오버라이드해서 재정의할 수 있다.
+//    @EntityGraph(attributePaths = {"team"})
+//    List<Member> findAll();
 
     @Query("select m from Member m left join fetch m.team")
     List<Member> findMemberFetchjoin();
@@ -80,4 +80,6 @@ public interface MemberRepository extends JpaRepository<Member, Long>, MemberRep
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Member> findLockByName(String name);
+
+    List<UserNameOnly> findProjectionsByName(@Param("user") String name);
 }

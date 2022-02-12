@@ -44,7 +44,7 @@ public class MembeController {
         return map;
     }
 
-    @PostConstruct //테스트를 위해 데이터 생성
+    //@PostConstruct //테스트를 위해 데이터 생성
     public void init() {
         for (int i = 0; i  < 100; i++) {
             memberRepository.save(new Member("user" + i, i));
