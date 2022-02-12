@@ -411,11 +411,26 @@ public class MemberRepositoryTest {
         em.clear();
 
         //when
-        List<UserNameOnly> result = memberRepository.findProjectionsByName("m1");
+        //1.interface Projections
+        //List<UserNameOnly> result = memberRepository.findProjectionsByName("m1");
+        //for(UserNameOnly u : result) {
+        //    System.out.println("userNameOnly = " + u);
+        //    System.out.println("userNameOnly = " + u.getName());
+        //}
 
-        for(UserNameOnly u : result) {
-            System.out.println("userNameOnly = " + u);
-            System.out.println("userNameOnly = " + u.getName());
+
+        //2.class Projections
+        //List<UserNameOnlyDto> result = memberRepository.findProjectionsByName("m1");
+        //for(UserNameOnlyDto u : result) {
+        //    System.out.println("userNameOnlyDto = " + u);
+        //    System.out.println("userNameOnlyDto = " + u.getName());
+        //}
+        
+        // 3.Nested Projections
+        List<NestedClosedProjecitons> result = memberRepository.findProjectionsByName("m1", NestedClosedProjecitons.class);
+        for(NestedClosedProjecitons u : result) {
+            System.out.println("NestedClosedProjecitons = " + u);
+            System.out.println("NestedClosedProjecitons = " + u.getName());
         }
     }
 }
