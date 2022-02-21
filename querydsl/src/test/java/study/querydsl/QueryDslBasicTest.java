@@ -1,19 +1,29 @@
 package study.querydsl;
 
+import com.fasterxml.jackson.databind.deser.std.StdDelegatingDeserializer;
+import com.fasterxml.jackson.databind.deser.std.StdKeyDeserializer;
+import com.querydsl.core.QueryFactory;
+import com.querydsl.core.QueryResults;
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import org.assertj.core.api.Assertions;
+import net.bytebuddy.description.type.TypeList;
+import net.minidev.json.JSONUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.entity.Member;
-import study.querydsl.entity.QMember;
+import study.querydsl.entity.QTeam;
 import study.querydsl.entity.Team;
 
 import javax.persistence.EntityManager;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static study.querydsl.entity.QMember.*;
+import static study.querydsl.entity.QTeam.team;
 
 @SpringBootTest
 @Transactional
@@ -56,16 +66,204 @@ public class QueryDslBasicTest {
     public void startQueryDsl() {
         //1.QueryDsl 사용을 위해 JPAQueryFactory 생성
         queryFactory = new JPAQueryFactory(em);
-        //2.Q클래스 생성
-        QMember m = new QMember("m");
+        //2.Q클래스 인스턴트 생성하기
+            //2-1. 별칭 직접 지정
+            //QMember m = new QMember("m");
+            //2-2. 기본 스테틱 인스턴스 사용 [권장]
+            //QMember.member로 바로 사용하거나,
+            //static import로 불러다 놓고 사용하자. (import static study.querydsl.entity.QMember.*;)
         //3.find 로직 작성
         //컴파일 시점에 오류를 잡을 수 있고, IDE 자동 완성의 도움을 받을 수 있다.
-        Member findMember = queryFactory.select(m)
-                                        .from(m)
-                                        .where(m.name.eq("member1")) //파라미터 바인딩 처리
+        Member findMember = queryFactory.select(member)
+                                        .from(member)
+                                        .where(member.name.eq("member1")) //파라미터 바인딩 처리
                                         .fetchOne();
 
         assertThat(findMember.getName()).isEqualTo("member1");
     }
 
+    @Test
+    public void search() {
+        queryFactory = new JPAQueryFactory(em);
+        Member findMember = queryFactory
+                                .selectFrom(member)
+                                //이름이 member1 이고, 나이가 10인 맴버 조회
+                                .where(
+                                        member.name.eq("member1")
+                                        .and(member.age.eq(10))
+                                )
+                                .fetchOne();
+
+        assertThat(findMember.getName()).isEqualTo("member1");
+    }
+
+    @Test
+    public void searchAndParam() {
+        queryFactory = new JPAQueryFactory(em);
+        Member findMember = queryFactory
+                                .selectFrom(member)
+                                //기본적으로 where는 and로 검색한다. 따라서 and 조건이라면 .and()로 체인을 걸지 않고, 콤마로 구분해도 된다.
+                                .where(
+                                        member.name.eq("member1"),
+                                        member.age.eq(10)
+                                )
+                                .fetchOne();
+
+        assertThat(findMember.getName()).isEqualTo("member1");
+    }
+
+    @Test
+    public void resultFetch() {
+        queryFactory = new JPAQueryFactory(em);
+
+        //리스트 조회
+        List<Member> fetch = queryFactory
+                                .selectFrom(member)
+                                .fetch();
+
+        //단건 조회
+        Member fetchOne = queryFactory
+                                .selectFrom(member)
+                                .where(member.name.eq("member1"))
+                                .fetchOne();
+
+        //처음 한 건만 조회
+        Member fetchFirst = queryFactory
+                                .selectFrom(member)
+                              //.limit(1).fetchOne()과 같음
+                                .fetchFirst();
+
+        //페이징 정보를 포함한 조회
+        QueryResults<Member> results = queryFactory.selectFrom(member)
+                                                   .fetchResults();
+        System.out.println("total " + results.getTotal());
+        List<Member> members = results.getResults();
+
+        //전체 count 조회
+        long count = queryFactory.selectFrom(member)
+                                 .fetchCount();
+    }
+
+
+    /**회원정렬순서
+     * 1.회원 나이 내림차순
+     * 2.회원 이름 올림차순
+     * 단 2에서 회원 이름 없으면 마지막에 출력 */
+    @Test
+    public void order() {
+
+        em.persist(new Member("member5", 100));
+        em.persist(new Member("member6", 100));
+        em.persist(new Member(null, 100));
+
+        queryFactory = new JPAQueryFactory(em);
+
+        List<Member> result = queryFactory.selectFrom(member)
+                                          .where(member.age.eq(100))
+                                          .orderBy(member.age.desc(), member.name.asc().nullsLast()) //nullFirst()도 있음
+                                          .fetch();
+
+        Member member5 = result.get(0);
+        Member member6 = result.get(1);
+        Member nullMember = result.get(2);
+        assertThat(member5.getName()).isEqualTo("member5");
+        assertThat(member6.getName()).isEqualTo("member6");
+        assertThat(nullMember.getName()).isEqualTo(null);
+    }
+
+    @Test
+    public void paging() {
+        queryFactory = new JPAQueryFactory(em);
+        List<Member> result = queryFactory
+                                .selectFrom(member)
+                                .orderBy(member.name.desc())
+                                .offset(1)
+                                .limit(2)
+                                .fetch();
+
+        assertThat(result.size()).isEqualTo(2);
+    }
+
+    @Test
+    public void aggregation() {
+        queryFactory = new JPAQueryFactory(em);
+
+        //Tuple은 queryDSL이 제공하는 타입
+        Tuple result = queryFactory
+                                .select(
+                                        member.count(),
+                                        member.age.sum(),
+                                        member.age.avg(),
+                                        member.age.max(),
+                                        member.age.min()
+                                )
+                                .from(member)
+                                .fetchOne();
+
+        assertThat(result.get(member.count())).isEqualTo(4);
+        assertThat(result.get(member.age.sum())).isEqualTo(100);
+        assertThat(result.get(member.age.avg())).isEqualTo(25);
+        assertThat(result.get(member.age.max())).isEqualTo(40);
+        assertThat(result.get(member.age.min())).isEqualTo(10);
+    }
+
+
+    /**
+     * 팀의 이름과 각 팀의 평균 연령을 구하라
+     */
+    @Test
+    public void group() throws Exception {
+        queryFactory = new JPAQueryFactory(em);
+
+        List<Tuple> result = queryFactory.select(team.name, member.age.avg())
+                                        .from(member)
+                                        .join(member.team, team)
+                                        .groupBy(team.name)
+                                      //.having() having절도 추가할 수 있다.
+                                        .fetch();
+
+        Tuple teamA = result.get(0);
+        Tuple teamB = result.get(1);
+
+        assertThat(teamA.get(team.name)).isEqualTo("teamA");
+        assertThat(teamA.get(member.age.avg())).isEqualTo(15);
+        assertThat(teamB.get(team.name)).isEqualTo("teamB");
+        assertThat(teamB.get(member.age.avg())).isEqualTo(35);
+    }
+
+    /**teamA에 소속된 모든 회원*/
+    @Test
+    public void join() {
+        queryFactory = new JPAQueryFactory(em);
+        List<Member> result = queryFactory.selectFrom(member)
+                                          .join(member.team, team)
+                                          .where(team.name.eq("teamA"))
+                                          .fetch();
+        assertThat(result)
+                .extracting("name")
+                .containsExactly("member1", "member2");
+    }
+
+    /**세타조인
+     * 회원의 이름이 팀 이름과 같은 회원 조회
+     */
+    @Test
+    public void theta_join() {
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+
+        queryFactory = new JPAQueryFactory(em);
+        List<Member> result = queryFactory
+                .select(member)
+                .from(member, team) //from절에서 나열
+                .where(member.name.eq(team.name))
+                .fetch();
+        //모든 회원을 가져오고 모든 팀을 가져온 다음에 모두 조인을 해서 where절에서 필터링 (DB에서 최적화 함)
+
+        assertThat(result)
+                .extracting("name")
+                .containsExactly("teamA", "teamB");
+
+
+    }
 }

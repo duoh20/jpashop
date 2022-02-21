@@ -28,6 +28,11 @@ public class Member {
         this.name = name;
     }
 
+    public Member(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
     public Member(String name, int age, Team team) {
         this.name = name;
         this.age =age;
