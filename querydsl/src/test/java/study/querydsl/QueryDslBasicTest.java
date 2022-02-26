@@ -251,19 +251,18 @@ public class QueryDslBasicTest {
     public void theta_join() {
         em.persist(new Member("teamA"));
         em.persist(new Member("teamB"));
+        em.persist(new Member("teamC"));
 
         queryFactory = new JPAQueryFactory(em);
         List<Member> result = queryFactory
-                .select(member)
-                .from(member, team) //from절에서 나열
-                .where(member.name.eq(team.name))
-                .fetch();
+                                .select(member)
+                                .from(member, team) //from절에서 나열
+                                .where(member.name.eq(team.name))
+                                .fetch();
         //모든 회원을 가져오고 모든 팀을 가져온 다음에 모두 조인을 해서 where절에서 필터링 (DB에서 최적화 함)
 
         assertThat(result)
                 .extracting("name")
                 .containsExactly("teamA", "teamB");
-
-
     }
 }
