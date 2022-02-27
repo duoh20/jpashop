@@ -265,4 +265,44 @@ public class QueryDslBasicTest {
                 .extracting("name")
                 .containsExactly("teamA", "teamB");
     }
+
+    /**join on
+     * ex)회원과 팀을 조인하면서 팀 이름이 teamA인 팀만 조인, 회원은 모두 조회
+     * JPQL: select m, t from Member m left join m.team t on t.name = 'teamA'
+     */
+    @Test
+    public void join_on_filtering() {
+        queryFactory = new JPAQueryFactory(em);
+        List<Tuple> result = queryFactory //select 대상의 타입이 여러가지이므로 Tuple을 반환한다.
+                                .select(member, team)
+                                .from(member)
+                                .leftJoin(member.team, team).on(team.name.eq("teamA")) //맴버는 다 가져오는데, 팀은 이름이 'teamA'만 것만 가져온다.
+                                .fetch();
+        for(Tuple tuple : result) {
+            System.out.println("tuple =" + tuple);
+        }
+    }
+
+    /**
+     * 연관 관계가 없는 엔티티 외부 조인
+     * 회원의 이름과 팀 이름과 같은 대상 외부 조인
+     */
+    @Test
+    public void join_on_no_relation() {
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+        em.persist(new Member("teamC"));
+
+        queryFactory = new JPAQueryFactory(em);
+        List<Tuple> result = queryFactory
+                                .select(member, team)
+                                .from(member)
+                                .leftJoin(team).on(member.name.eq(team.name)) //member.team으로 들어가면 ID로 매칭을 함, ㅡ드ㅠㄷㄱF
+                                .fetch();
+        //모든 회원을 가져오고 모든 팀을 가져온 다음에 모두 조인을 해서 where절에서 필터링 (DB에서 최적화 함)
+
+        for(Tuple tuple : result) {
+            System.out.println("tuple =" + tuple);
+        }
+    }
 }
