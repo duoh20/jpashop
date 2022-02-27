@@ -18,6 +18,8 @@ import study.querydsl.entity.QTeam;
 import study.querydsl.entity.Team;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 
 import java.util.List;
 
@@ -299,10 +301,45 @@ public class QueryDslBasicTest {
                                 .from(member)
                                 .leftJoin(team).on(member.name.eq(team.name)) //member.team으로 들어가면 ID로 매칭을 함, ㅡ드ㅠㄷㄱF
                                 .fetch();
-        //모든 회원을 가져오고 모든 팀을 가져온 다음에 모두 조인을 해서 where절에서 필터링 (DB에서 최적화 함)
 
         for(Tuple tuple : result) {
             System.out.println("tuple =" + tuple);
         }
+    }
+
+    @PersistenceUnit
+    EntityManagerFactory emf;
+    //엔티티 메니저를 만드는 팩토리
+    //이 객체는 .getPersistenceUnitUtil().isLoaded(엔티티)와 같이 로딩된 엔티티인지 알려주는 메소드를 가지고 있다.
+
+    @Test
+    public void fetchjoin_not() {
+        em.flush();
+        em.clear();
+
+        queryFactory = new JPAQueryFactory(em);
+        Member findMember = queryFactory
+                            .selectFrom(member)
+                            .where(member.name.eq("member1"))
+                            .fetchOne();
+
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+        assertThat(loaded).as("패치 조인 미적용").isFalse(); //as는 디스크립션을 작성하는 메소드
+    }
+
+    @Test
+    public void fetchjoin_use() {
+        em.flush();
+        em.clear();
+
+        queryFactory = new JPAQueryFactory(em);
+        Member findMember = queryFactory
+                            .selectFrom(member)
+                            .join(member.team, team).fetchJoin()
+                            .where(member.name.eq("member1"))
+                            .fetchOne();
+
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+        assertThat(loaded).as("패치 조인 미적용").isTrue(); //as는 디스크립션을 작성하는 메소드
     }
 }
