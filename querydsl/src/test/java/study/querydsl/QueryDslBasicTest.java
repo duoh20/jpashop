@@ -6,6 +6,7 @@ import com.querydsl.core.QueryFactory;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import net.bytebuddy.description.type.TypeList;
@@ -35,7 +36,8 @@ import static study.querydsl.entity.QTeam.team;
 @Transactional
 public class QueryDslBasicTest {
 
-    @Autowired EntityManager em;
+    @Autowired
+    EntityManager em;
     JPAQueryFactory queryFactory;
 
     @BeforeEach
@@ -59,11 +61,11 @@ public class QueryDslBasicTest {
     }
 
     @Test
-    public void startJPQL(){
+    public void startJPQL() {
         //find
         Member findMember = em.createQuery("select m from Member m where m.name = : name", Member.class)
-                            .setParameter("name", "member1")
-                            .getSingleResult();
+                .setParameter("name", "member1")
+                .getSingleResult();
 
         assertThat(findMember.getName()).isEqualTo("member1");
     }
@@ -73,17 +75,17 @@ public class QueryDslBasicTest {
         //1.QueryDsl 사용을 위해 JPAQueryFactory 생성
         queryFactory = new JPAQueryFactory(em);
         //2.Q클래스 인스턴트 생성하기
-            //2-1. 별칭 직접 지정
-            //QMember m = new QMember("m");
-            //2-2. 기본 스테틱 인스턴스 사용 [권장]
-            //QMember.member로 바로 사용하거나,
-            //static import로 불러다 놓고 사용하자. (import static study.querydsl.entity.QMember.*;)
+        //2-1. 별칭 직접 지정
+        //QMember m = new QMember("m");
+        //2-2. 기본 스테틱 인스턴스 사용 [권장]
+        //QMember.member로 바로 사용하거나,
+        //static import로 불러다 놓고 사용하자. (import static study.querydsl.entity.QMember.*;)
         //3.find 로직 작성
         //컴파일 시점에 오류를 잡을 수 있고, IDE 자동 완성의 도움을 받을 수 있다.
         Member findMember = queryFactory.select(member)
-                                        .from(member)
-                                        .where(member.name.eq("member1")) //파라미터 바인딩 처리
-                                        .fetchOne();
+                .from(member)
+                .where(member.name.eq("member1")) //파라미터 바인딩 처리
+                .fetchOne();
 
         assertThat(findMember.getName()).isEqualTo("member1");
     }
@@ -92,13 +94,13 @@ public class QueryDslBasicTest {
     public void search() {
         queryFactory = new JPAQueryFactory(em);
         Member findMember = queryFactory
-                                .selectFrom(member)
-                                //이름이 member1 이고, 나이가 10인 맴버 조회
-                                .where(
-                                        member.name.eq("member1")
-                                        .and(member.age.eq(10))
-                                )
-                                .fetchOne();
+                .selectFrom(member)
+                //이름이 member1 이고, 나이가 10인 맴버 조회
+                .where(
+                        member.name.eq("member1")
+                                .and(member.age.eq(10))
+                )
+                .fetchOne();
 
         assertThat(findMember.getName()).isEqualTo("member1");
     }
@@ -107,13 +109,13 @@ public class QueryDslBasicTest {
     public void searchAndParam() {
         queryFactory = new JPAQueryFactory(em);
         Member findMember = queryFactory
-                                .selectFrom(member)
-                                //기본적으로 where는 and로 검색한다. 따라서 and 조건이라면 .and()로 체인을 걸지 않고, 콤마로 구분해도 된다.
-                                .where(
-                                        member.name.eq("member1"),
-                                        member.age.eq(10)
-                                )
-                                .fetchOne();
+                .selectFrom(member)
+                //기본적으로 where는 and로 검색한다. 따라서 and 조건이라면 .and()로 체인을 걸지 않고, 콤마로 구분해도 된다.
+                .where(
+                        member.name.eq("member1"),
+                        member.age.eq(10)
+                )
+                .fetchOne();
 
         assertThat(findMember.getName()).isEqualTo("member1");
     }
@@ -124,37 +126,39 @@ public class QueryDslBasicTest {
 
         //리스트 조회
         List<Member> fetch = queryFactory
-                                .selectFrom(member)
-                                .fetch();
+                .selectFrom(member)
+                .fetch();
 
         //단건 조회
         Member fetchOne = queryFactory
-                                .selectFrom(member)
-                                .where(member.name.eq("member1"))
-                                .fetchOne();
+                .selectFrom(member)
+                .where(member.name.eq("member1"))
+                .fetchOne();
 
         //처음 한 건만 조회
         Member fetchFirst = queryFactory
-                                .selectFrom(member)
-                              //.limit(1).fetchOne()과 같음
-                                .fetchFirst();
+                .selectFrom(member)
+                //.limit(1).fetchOne()과 같음
+                .fetchFirst();
 
         //페이징 정보를 포함한 조회
         QueryResults<Member> results = queryFactory.selectFrom(member)
-                                                   .fetchResults();
+                .fetchResults();
         System.out.println("total " + results.getTotal());
         List<Member> members = results.getResults();
 
         //전체 count 조회
         long count = queryFactory.selectFrom(member)
-                                 .fetchCount();
+                .fetchCount();
     }
 
 
-    /**회원정렬순서
+    /**
+     * 회원정렬순서
      * 1.회원 나이 내림차순
      * 2.회원 이름 올림차순
-     * 단 2에서 회원 이름 없으면 마지막에 출력 */
+     * 단 2에서 회원 이름 없으면 마지막에 출력
+     */
     @Test
     public void order() {
 
@@ -165,9 +169,9 @@ public class QueryDslBasicTest {
         queryFactory = new JPAQueryFactory(em);
 
         List<Member> result = queryFactory.selectFrom(member)
-                                          .where(member.age.eq(100))
-                                          .orderBy(member.age.desc(), member.name.asc().nullsLast()) //nullFirst()도 있음
-                                          .fetch();
+                .where(member.age.eq(100))
+                .orderBy(member.age.desc(), member.name.asc().nullsLast()) //nullFirst()도 있음
+                .fetch();
 
         Member member5 = result.get(0);
         Member member6 = result.get(1);
@@ -181,11 +185,11 @@ public class QueryDslBasicTest {
     public void paging() {
         queryFactory = new JPAQueryFactory(em);
         List<Member> result = queryFactory
-                                .selectFrom(member)
-                                .orderBy(member.name.desc())
-                                .offset(1)
-                                .limit(2)
-                                .fetch();
+                .selectFrom(member)
+                .orderBy(member.name.desc())
+                .offset(1)
+                .limit(2)
+                .fetch();
 
         assertThat(result.size()).isEqualTo(2);
     }
@@ -196,15 +200,15 @@ public class QueryDslBasicTest {
 
         //Tuple은 queryDSL이 제공하는 타입
         Tuple result = queryFactory
-                                .select(
-                                        member.count(),
-                                        member.age.sum(),
-                                        member.age.avg(),
-                                        member.age.max(),
-                                        member.age.min()
-                                )
-                                .from(member)
-                                .fetchOne();
+                .select(
+                        member.count(),
+                        member.age.sum(),
+                        member.age.avg(),
+                        member.age.max(),
+                        member.age.min()
+                )
+                .from(member)
+                .fetchOne();
 
         assertThat(result.get(member.count())).isEqualTo(4);
         assertThat(result.get(member.age.sum())).isEqualTo(100);
@@ -222,11 +226,11 @@ public class QueryDslBasicTest {
         queryFactory = new JPAQueryFactory(em);
 
         List<Tuple> result = queryFactory.select(team.name, member.age.avg())
-                                        .from(member)
-                                        .join(member.team, team)
-                                        .groupBy(team.name)
-                                      //.having() having절도 추가할 수 있다.
-                                        .fetch();
+                .from(member)
+                .join(member.team, team)
+                .groupBy(team.name)
+                //.having() having절도 추가할 수 있다.
+                .fetch();
 
         Tuple teamA = result.get(0);
         Tuple teamB = result.get(1);
@@ -237,20 +241,23 @@ public class QueryDslBasicTest {
         assertThat(teamB.get(member.age.avg())).isEqualTo(35);
     }
 
-    /**teamA에 소속된 모든 회원*/
+    /**
+     * teamA에 소속된 모든 회원
+     */
     @Test
     public void join() {
         queryFactory = new JPAQueryFactory(em);
         List<Member> result = queryFactory.selectFrom(member)
-                                          .join(member.team, team)
-                                          .where(team.name.eq("teamA"))
-                                          .fetch();
+                .join(member.team, team)
+                .where(team.name.eq("teamA"))
+                .fetch();
         assertThat(result)
                 .extracting("name")
                 .containsExactly("member1", "member2");
     }
 
-    /**세타조인
+    /**
+     * 세타조인
      * 회원의 이름이 팀 이름과 같은 회원 조회
      */
     @Test
@@ -261,10 +268,10 @@ public class QueryDslBasicTest {
 
         queryFactory = new JPAQueryFactory(em);
         List<Member> result = queryFactory
-                                .select(member)
-                                .from(member, team) //from절에서 나열
-                                .where(member.name.eq(team.name))
-                                .fetch();
+                .select(member)
+                .from(member, team) //from절에서 나열
+                .where(member.name.eq(team.name))
+                .fetch();
         //모든 회원을 가져오고 모든 팀을 가져온 다음에 모두 조인을 해서 where절에서 필터링 (DB에서 최적화 함)
 
         assertThat(result)
@@ -272,7 +279,8 @@ public class QueryDslBasicTest {
                 .containsExactly("teamA", "teamB");
     }
 
-    /**join on
+    /**
+     * join on
      * ex)회원과 팀을 조인하면서 팀 이름이 teamA인 팀만 조인, 회원은 모두 조회
      * JPQL: select m, t from Member m left join m.team t on t.name = 'teamA'
      */
@@ -280,11 +288,11 @@ public class QueryDslBasicTest {
     public void join_on_filtering() {
         queryFactory = new JPAQueryFactory(em);
         List<Tuple> result = queryFactory //select 대상의 타입이 여러가지이므로 Tuple을 반환한다.
-                                .select(member, team)
-                                .from(member)
-                                .leftJoin(member.team, team).on(team.name.eq("teamA")) //맴버는 다 가져오는데, 팀은 이름이 'teamA'만 것만 가져온다.
-                                .fetch();
-        for(Tuple tuple : result) {
+                .select(member, team)
+                .from(member)
+                .leftJoin(member.team, team).on(team.name.eq("teamA")) //맴버는 다 가져오는데, 팀은 이름이 'teamA'만 것만 가져온다.
+                .fetch();
+        for (Tuple tuple : result) {
             System.out.println("tuple =" + tuple);
         }
     }
@@ -301,12 +309,12 @@ public class QueryDslBasicTest {
 
         queryFactory = new JPAQueryFactory(em);
         List<Tuple> result = queryFactory
-                                .select(member, team)
-                                .from(member)
-                                .leftJoin(team).on(member.name.eq(team.name)) //member.team으로 들어가면 ID로 매칭을 함, ㅡ드ㅠㄷㄱF
-                                .fetch();
+                .select(member, team)
+                .from(member)
+                .leftJoin(team).on(member.name.eq(team.name)) //member.team으로 들어가면 ID로 매칭을 함, ㅡ드ㅠㄷㄱF
+                .fetch();
 
-        for(Tuple tuple : result) {
+        for (Tuple tuple : result) {
             System.out.println("tuple =" + tuple);
         }
     }
@@ -323,9 +331,9 @@ public class QueryDslBasicTest {
 
         queryFactory = new JPAQueryFactory(em);
         Member findMember = queryFactory
-                            .selectFrom(member)
-                            .where(member.name.eq("member1"))
-                            .fetchOne();
+                .selectFrom(member)
+                .where(member.name.eq("member1"))
+                .fetchOne();
 
         boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
         assertThat(loaded).as("패치 조인 미적용").isFalse(); //as는 디스크립션을 작성하는 메소드
@@ -338,10 +346,10 @@ public class QueryDslBasicTest {
 
         queryFactory = new JPAQueryFactory(em);
         Member findMember = queryFactory
-                            .selectFrom(member)
-                            .join(member.team, team).fetchJoin()
-                            .where(member.name.eq("member1"))
-                            .fetchOne();
+                .selectFrom(member)
+                .join(member.team, team).fetchJoin()
+                .where(member.name.eq("member1"))
+                .fetchOne();
 
         boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
         assertThat(loaded).as("패치 조인 미적용").isTrue(); //as는 디스크립션을 작성하는 메소드
@@ -355,11 +363,11 @@ public class QueryDslBasicTest {
         queryFactory = new JPAQueryFactory(em);
         QMember memberSub = new QMember("memberSub"); //subQuery의 member가 외부의 member가 겹치면 안되서 다른 알리아스를 가진 MEMBER 생성
         List<Member> result = queryFactory
-                                    .selectFrom(member)
-                                    .where(member.age.eq(
-                                            select(memberSub.age.max()) //알리아스를 다르게 두기 위함
-                                                    .from(memberSub)
-                                    )).fetch();
+                .selectFrom(member)
+                .where(member.age.eq(
+                        select(memberSub.age.max()) //알리아스를 다르게 두기 위함
+                                .from(memberSub)
+                )).fetch();
         assertThat(result).extracting("age").containsExactly(40);
     }
 
@@ -407,13 +415,13 @@ public class QueryDslBasicTest {
         QMember memberSub = new QMember("memberSub");
 
         List<Tuple> result = queryFactory
-                                .select(member.name,
-                                        select(memberSub.age.avg())
-                                        .from(memberSub))
-                                .from(member)
-                                .fetch();
+                .select(member.name,
+                        select(memberSub.age.avg())
+                                .from(memberSub))
+                .from(member)
+                .fetch();
 
-        for(Tuple t : result) {
+        for (Tuple t : result) {
             System.out.println("tuple = " + t);
         }
     }
@@ -422,12 +430,12 @@ public class QueryDslBasicTest {
     public void basicCase() {
         queryFactory = new JPAQueryFactory(em);
         List<String> result = queryFactory.select(member.age
-                                                    .when(10).then("열살")
-                                                    .when(20).then("스무살")
-                                                    .otherwise("기타"))
-                                            .from(member)
-                                            .fetch();
-        for(String s : result) {
+                        .when(10).then("열살")
+                        .when(20).then("스무살")
+                        .otherwise("기타"))
+                .from(member)
+                .fetch();
+        for (String s : result) {
             System.out.println("s = " + s);
         }
     }
@@ -436,13 +444,42 @@ public class QueryDslBasicTest {
     public void complexCase() {
         queryFactory = new JPAQueryFactory(em);
         List<String> result = queryFactory
-                                .select(new CaseBuilder() //복잡한 케이스를 작성할 경우 CaseBuilder를 사용한다.
-                                        .when(member.age.between(0, 20)).then("0~20살")
-                                        .when(member.age.between(21, 30)).then("21~30살")
-                                        .otherwise("기타"))
-                                .from(member)
-                                .fetch();
-        for(String s : result) {
+                .select(new CaseBuilder() //복잡한 케이스를 작성할 경우 CaseBuilder를 사용한다.
+                        .when(member.age.between(0, 20)).then("0~20살")
+                        .when(member.age.between(21, 30)).then("21~30살")
+                        .otherwise("기타"))
+                .from(member)
+                .fetch();
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void constant() {
+        queryFactory = new JPAQueryFactory(em);
+        List<Tuple> result = queryFactory
+                .select(member.name, Expressions.constant("A"))
+                .from(member)
+                .fetch();
+        for (Tuple tupel : result) {
+            System.out.println("tupel = " + tupel);
+        }
+    }
+
+
+    @Test
+    public void concat() {
+        queryFactory = new JPAQueryFactory(em);
+
+        //name_age 형태로 concat하기
+        List<String> result = queryFactory
+                .select(member.name.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.name.eq("member1"))
+                .fetch();
+
+        for (String s : result) {
             System.out.println("s = " + s);
         }
     }
