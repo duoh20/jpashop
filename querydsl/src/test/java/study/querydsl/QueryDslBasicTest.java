@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.deser.std.StdKeyDeserializer;
 import com.querydsl.core.QueryFactory;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import net.bytebuddy.description.type.TypeList;
 import net.minidev.json.JSONUtil;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.entity.Member;
+import study.querydsl.entity.QMember;
 import study.querydsl.entity.QTeam;
 import study.querydsl.entity.Team;
 
@@ -23,6 +25,7 @@ import javax.persistence.PersistenceUnit;
 
 import java.util.List;
 
+import static com.querydsl.jpa.JPAExpressions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static study.querydsl.entity.QMember.*;
 import static study.querydsl.entity.QTeam.team;
@@ -341,5 +344,76 @@ public class QueryDslBasicTest {
 
         boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
         assertThat(loaded).as("패치 조인 미적용").isTrue(); //as는 디스크립션을 작성하는 메소드
+    }
+
+    /**
+     * 나이가 가장 많은 회원 조회
+     */
+    @Test
+    public void subQuery() {
+        queryFactory = new JPAQueryFactory(em);
+        QMember memberSub = new QMember("memberSub"); //subQuery의 member가 외부의 member가 겹치면 안되서 다른 알리아스를 가진 MEMBER 생성
+        List<Member> result = queryFactory
+                                    .selectFrom(member)
+                                    .where(member.age.eq(
+                                            select(memberSub.age.max()) //알리아스를 다르게 두기 위함
+                                                    .from(memberSub)
+                                    )).fetch();
+        assertThat(result).extracting("age").containsExactly(40);
+    }
+
+    /**
+     * 나이가 평균 이상인 회원
+     */
+    @Test
+    public void subQuery_goe() {
+        queryFactory = new JPAQueryFactory(em);
+        QMember memberSub = new QMember("memberSub");
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.goe(
+                        select(memberSub.age.avg())
+                                .from(memberSub)
+                )).fetch();
+
+        assertThat(result).extracting("age").containsExactly(30, 40);
+    }
+
+    /**
+     * 나이가 10살 초과
+     * (효율적이지 않은 쿼리지만 예제상으로 만듦)
+     */
+    @Test
+    public void subQuery_in() {
+        queryFactory = new JPAQueryFactory(em);
+        QMember memberSub = new QMember("memberSub");
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.in(
+                        select(memberSub.age)
+                                .from(memberSub)
+                                .where(memberSub.age.gt(10)) //나이가 10 초과
+                )).fetch();
+
+        assertThat(result).extracting("age").containsExactly(20, 30, 40);
+    }
+
+    @Test
+    public void subQuery_select() {
+        queryFactory = new JPAQueryFactory(em);
+        QMember memberSub = new QMember("memberSub");
+
+        List<Tuple> result = queryFactory
+                                .select(member.name,
+                                        select(memberSub.age.avg())
+                                        .from(memberSub))
+                                .from(member)
+                                .fetch();
+
+        for(Tuple t : result) {
+            System.out.println("tuple = " + t);
+        }
     }
 }
