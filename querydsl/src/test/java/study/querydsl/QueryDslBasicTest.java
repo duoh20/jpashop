@@ -7,10 +7,7 @@ import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import net.bytebuddy.description.type.TypeList;
-import net.minidev.json.JSONUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +15,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
-import study.querydsl.entity.QTeam;
 import study.querydsl.entity.Team;
 
 import javax.persistence.EntityManager;
@@ -37,8 +33,8 @@ import static study.querydsl.entity.QTeam.team;
 public class QueryDslBasicTest {
 
     @Autowired
-    EntityManager em;
-    JPAQueryFactory queryFactory;
+    private EntityManager em;
+    private JPAQueryFactory queryFactory;
 
     @BeforeEach
     public void loadContents() {
@@ -411,7 +407,7 @@ public class QueryDslBasicTest {
 
     @Test
     public void subQuery_select() {
-        queryFactory = new JPAQueryFactory(em);
+        //queryFactory = new JPAQueryFactory(em);
         QMember memberSub = new QMember("memberSub");
 
         List<Tuple> result = queryFactory
@@ -471,7 +467,6 @@ public class QueryDslBasicTest {
     @Test
     public void concat() {
         queryFactory = new JPAQueryFactory(em);
-
         //name_age 형태로 concat하기
         List<String> result = queryFactory
                 .select(member.name.concat("_").concat(member.age.stringValue()))
@@ -481,6 +476,31 @@ public class QueryDslBasicTest {
 
         for (String s : result) {
             System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void simpleProjection() {
+        queryFactory = new JPAQueryFactory(em);
+        List<String> result = queryFactory
+                                .select(member.name)
+                                .from(member)
+                                .fetch();
+        for(String s: result)
+            System.out.println("s = " + s);
+    }
+
+    @Test
+    public void tupleProjection() {
+        queryFactory = new JPAQueryFactory(em);
+        List<Tuple> result = queryFactory
+                .select(member.name, member.age)
+                .from(member)
+                .fetch();
+        for(Tuple tuple : result) {
+            String name = tuple.get(member.name);
+            Integer age = tuple.get(member.age);
+            System.out.println("tuple = " + name + " , " + age);
         }
     }
 }
