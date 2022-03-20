@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.QMemberDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.Team;
@@ -563,6 +564,25 @@ public class QueryDslBasicTest {
                 .fetch();
 
         for (UserDto dto : result)
+            System.out.println("memberDto = " + dto);
+    }
+
+
+
+    @Test
+    public void findUserDtoByQueryProjection() {
+        queryFactory = new JPAQueryFactory(em);
+
+        List<MemberDto> result = queryFactory
+                .select(new QMemberDto(member.name, member.age))
+                .from(member)
+                .fetch();
+        //컴파일 시점에 타입이 일치하지 않으면 에러를 발생시켜주는 이점이 있다.
+        //반환 타입도 Tuple이 아닌 MemberDto로 반환되는 이점이 있다.
+        //Projections.constructor()와 비슷한 방식인데, constructor()는 컴파일 시점에 타입 체크가 되지 않는 단점이 있다.
+        //쿼리 프로젝션의 단점은 Q파일을 생성해야하고, MemberDto가 queryDsl에 의존성을 가지게 되는 단점이 있다.
+
+        for (MemberDto dto : result)
             System.out.println("memberDto = " + dto);
     }
 }
