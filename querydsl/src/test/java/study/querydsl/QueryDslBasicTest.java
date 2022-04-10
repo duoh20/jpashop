@@ -4,7 +4,9 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -585,13 +587,11 @@ public class QueryDslBasicTest {
             System.out.println("memberDto = " + dto);
     }
 
-
     @Test
     public void dynamicQuery_BooleanBuilder() {
         //이름과 나이를 검색 조건으로 맴버를 찾는 동적 쿼리가 필요한 상황이다.
         String nameParam = "member1";
         Integer ageParam = null;
-
 
         List<Member> result = searchMember1(nameParam, ageParam);
         assertThat(result.size()).isEqualTo(1);
@@ -610,5 +610,42 @@ public class QueryDslBasicTest {
 
         queryFactory = new JPAQueryFactory(em);
         return queryFactory.selectFrom(member).where(builder).fetch();
+    }
+
+    @Test
+    public void dynamicQuery_WherePram() {
+        //이름과 나이를 검색 조건으로 맴버를 찾는 동적 쿼리가 필요한 상황이다.
+        String nameParam = "member1";
+        Integer ageParam = null;
+
+        List<Member> result = searchMember2(nameParam, ageParam);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember2(String nameCond, Integer ageCond) {
+        queryFactory = new JPAQueryFactory(em);
+        return queryFactory.selectFrom(member)
+                            .where(nameEq(nameCond), ageEq(ageCond)) //where에 Null이 들어오면 무시한다.
+                            .fetch();
+    }
+
+    private Predicate ageEq(Integer ageCond) {
+        return ageCond != null ? member.age.eq(ageCond) : null;
+    }
+
+    private Predicate nameEq(String nameCond) {
+        return nameCond != null ? member.name.eq(nameCond) : null;
+    }
+
+    private BooleanExpression allEq(String nameCod, Integer ageCod) {
+        return nameEq_BolEx(nameCod).and(ageEq_BolEx(ageCod));
+    }
+
+    private BooleanExpression ageEq_BolEx(Integer ageCond) {
+        return ageCond != null ? member.age.eq(ageCond) : null;
+    }
+
+    private BooleanExpression nameEq_BolEx(String nameCond) {
+        return nameCond != null ? member.name.eq(nameCond) : null;
     }
 }
