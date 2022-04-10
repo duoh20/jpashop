@@ -1,5 +1,6 @@
 package study.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
@@ -485,10 +486,10 @@ public class QueryDslBasicTest {
     public void simpleProjection() {
         queryFactory = new JPAQueryFactory(em);
         List<String> result = queryFactory
-                                .select(member.name)
-                                .from(member)
-                                .fetch();
-        for(String s: result)
+                .select(member.name)
+                .from(member)
+                .fetch();
+        for (String s : result)
             System.out.println("s = " + s);
     }
 
@@ -499,7 +500,7 @@ public class QueryDslBasicTest {
                 .select(member.name, member.age)
                 .from(member)
                 .fetch();
-        for(Tuple tuple : result) {
+        for (Tuple tuple : result) {
             String name = tuple.get(member.name);
             Integer age = tuple.get(member.age);
             System.out.println("tuple = " + name + " , " + age);
@@ -509,8 +510,8 @@ public class QueryDslBasicTest {
     @Test
     public void findDtoByJPQL() {
         List<MemberDto> resultList = em.createQuery("select new study.querydsl.dto.MemberDto(m.name, m.age) from Member m", MemberDto.class)
-                                        .getResultList();
-        for(MemberDto dto : resultList)
+                .getResultList();
+        for (MemberDto dto : resultList)
             System.out.println("memberDto = " + dto);
     }
 
@@ -555,10 +556,10 @@ public class QueryDslBasicTest {
         QMember memberSub = new QMember("memberSub");
         List<UserDto> result = queryFactory
                 .select(Projections.fields(UserDto.class,
-                                            member.name.as("userName"),
-                                            ExpressionUtils.as(JPAExpressions //서브쿼리, 이름이 없으므로 ExpressionUtils으로 두번째 파라미터로 알리아스를 정해줄 수 있다.
-                                                            .select(memberSub.age.max())
-                                                            .from(memberSub), "age")
+                        member.name.as("userName"),
+                        ExpressionUtils.as(JPAExpressions //서브쿼리, 이름이 없으므로 ExpressionUtils으로 두번째 파라미터로 알리아스를 정해줄 수 있다.
+                                .select(memberSub.age.max())
+                                .from(memberSub), "age")
                 ))
                 .from(member)
                 .fetch();
@@ -566,8 +567,6 @@ public class QueryDslBasicTest {
         for (UserDto dto : result)
             System.out.println("memberDto = " + dto);
     }
-
-
 
     @Test
     public void findUserDtoByQueryProjection() {
@@ -584,5 +583,32 @@ public class QueryDslBasicTest {
 
         for (MemberDto dto : result)
             System.out.println("memberDto = " + dto);
+    }
+
+
+    @Test
+    public void dynamicQuery_BooleanBuilder() {
+        //이름과 나이를 검색 조건으로 맴버를 찾는 동적 쿼리가 필요한 상황이다.
+        String nameParam = "member1";
+        Integer ageParam = null;
+
+
+        List<Member> result = searchMember1(nameParam, ageParam);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember1(String nameCond, Integer ageCond) {
+        //동적쿼리를 생성할 BooleanBuilder 생성
+        BooleanBuilder builder = new BooleanBuilder();
+        if(nameCond != null) {
+            builder.and(member.name.eq(nameCond));
+        }
+
+        if(ageCond != null) {
+            builder.and(member.age.eq(ageCond));
+        }
+
+        queryFactory = new JPAQueryFactory(em);
+        return queryFactory.selectFrom(member).where(builder).fetch();
     }
 }
