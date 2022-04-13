@@ -600,11 +600,11 @@ public class QueryDslBasicTest {
     private List<Member> searchMember1(String nameCond, Integer ageCond) {
         //동적쿼리를 생성할 BooleanBuilder 생성
         BooleanBuilder builder = new BooleanBuilder();
-        if(nameCond != null) {
+        if (nameCond != null) {
             builder.and(member.name.eq(nameCond));
         }
 
-        if(ageCond != null) {
+        if (ageCond != null) {
             builder.and(member.age.eq(ageCond));
         }
 
@@ -625,8 +625,8 @@ public class QueryDslBasicTest {
     private List<Member> searchMember2(String nameCond, Integer ageCond) {
         queryFactory = new JPAQueryFactory(em);
         return queryFactory.selectFrom(member)
-                            .where(nameEq(nameCond), ageEq(ageCond)) //where에 Null이 들어오면 무시한다.
-                            .fetch();
+                .where(nameEq(nameCond), ageEq(ageCond)) //where에 Null이 들어오면 무시한다.
+                .fetch();
     }
 
     private Predicate ageEq(Integer ageCond) {
@@ -647,5 +647,63 @@ public class QueryDslBasicTest {
 
     private BooleanExpression nameEq_BolEx(String nameCond) {
         return nameCond != null ? member.name.eq(nameCond) : null;
+    }
+
+    @Test
+    public void bulkUpdate() {
+
+        //벌크 연산 전 데이터는 아래와 같다.
+        //member1 = 10 -> member1
+        //member2 = 20 -> member2
+        //member3 = 30 -> member3
+        //member4 = 40 -> member4
+
+        //벌크 연산 쿼리 실행
+        queryFactory = new JPAQueryFactory(em);
+        long count = queryFactory
+                .update(member)
+                .set(member.name, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+
+        //벌크 연산을 실행 후
+        //member1 = 10 -> 비회원
+        //member2 = 20 -> 비회원
+        //member3 = 30 -> 유지
+        //member4 = 40 -> 유지
+        //쿼리 실행 후 영속성 컨텍스트와 DB의 상태가 달라지는 이슈가 있다.
+        //DB는 변경된 내용이 바로 반영되지만
+        //영속성 컨텍스트는 벌크 연산 전 데이터를 들고 있는 상태가 된다.
+
+        //아래처럼 초기화를 하지 않고 result를 찍어보면,
+        //DB에서 조회해 오더라도 영속성 컨텍스트가 우선 순위를 가져 벌크연산 전 데이터가 출력된다.
+        em.flush();
+        em.clear();
+
+        List<Member> result = queryFactory.selectFrom(member).fetch();
+        //벌크 연산 주의점: 연산 후 영속성 컨텍스트를 초기화 해야한다!!
+    }
+
+    @Test
+    public void bulkAdd() {
+        //모든 회원의 나이에 1을 더해야하는 벌크 연산 예시
+
+        //벌크 연산 쿼리 실행
+        queryFactory = new JPAQueryFactory(em);
+        long count = queryFactory
+                .update(member)
+                .set(member.age, member.age.add(1)) //곱하기는 multiply(숫자)
+                .execute();
+    }
+
+    @Test
+    public void bulkDelete() {
+        //18살 이상인 회원을 모두 제거해야하는 벌크 연산 예시
+        queryFactory = new JPAQueryFactory(em);
+        long count = queryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+
     }
 }
