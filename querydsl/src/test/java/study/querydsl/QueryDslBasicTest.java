@@ -706,4 +706,38 @@ public class QueryDslBasicTest {
                 .execute();
 
     }
+
+    @Test
+    public void sqlFunction() {
+        //예제1) member -> M으로 변경하는 replace 함수 사용
+        queryFactory = new JPAQueryFactory(em);
+        List<String> result = queryFactory
+                                .select(Expressions.stringTemplate( //숫자면 numberTemplate 사용
+                                        "function('replace', {0}, {1}, {2})",
+                                        member.name, "member", "M"))
+                                .from(member)
+                                .fetch();
+        for(String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void sqlFunction2() {
+        //예제2) 소문자로 변환
+        queryFactory = new JPAQueryFactory(em);
+        List<String> result = queryFactory
+                                .select(member.name)
+                                .from(member)
+                                //.where(member.name.eq(
+                                //        Expressions.stringTemplate("function('lower, {0})", member.name)
+                                //))
+                                //단, lower 같은 ansi 표준 함수들은 querydsl이 상당부분 내장하고 있어서
+                                //아래와 같이 작성해도 결과는 같다.
+                                .where(member.name.eq(member.name.lower()))
+                                .fetch();
+        for(String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
 }
